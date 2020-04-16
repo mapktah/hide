@@ -108,9 +108,10 @@ class Hide:
             unicode_range = Hash.BLOCK_CHINESE
             if lang == 'ko':
                 unicode_range = Hash.BLOCK_KOREAN_SYL
-            s = Hash.convert_hash_to_char(
-                hash_hex_string = x,
-                unicode_range   = unicode_range
+            s = Hash.convert_ascii_string_to_other_alphabet(
+                ascii_char_string = x,
+                unicode_range     = unicode_range,
+                group_n_char      = 4
             )
             return s
             #return s[2:len(s)]
@@ -162,22 +163,20 @@ class Hide:
 
         df[colname_encrypt] = df[colname_clean].apply(encrypt, args=[encryptor])
 
-        def obfuscate_cipher_to_lang(
-                x,
-                lang
-        ):
-            x_bytes = bytes(x.encode(encoding='utf-8'))
-            print('*** x=' + str(x))
-            print('*** xbytes=' + str(x_bytes))
-            unicode_range = Hash.BLOCK_CHINESE
-            if lang == 'ko':
-                unicode_range = Hash.BLOCK_KOREAN_SYL
-            s = Hash.convert_hash_to_char(
-                hash_hex_string = x,
-                unicode_range   = unicode_range
-            )
-            return s
-
+        # def obfuscate_cipher_to_lang(
+        #         x,
+        #         lang
+        # ):
+        #     unicode_range = Hash.BLOCK_CHINESE
+        #     if lang == 'ko':
+        #         unicode_range = Hash.BLOCK_KOREAN_SYL
+        #     s = Hash.convert_ascii_string_to_other_alphabet(
+        #         ascii_char_string = x['ciphertext_b64'],
+        #         unicode_range     = unicode_range,
+        #         group_n_char      = 2
+        #     )
+        #     return s
+        #
         # df[colname_encrypt_readable] = df[colname_encrypt].apply(obfuscate_cipher_to_lang, args=[hash_encode_lang])
 
         df_json_str = df.to_json(

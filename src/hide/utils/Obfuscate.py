@@ -42,9 +42,10 @@ class Obfuscate:
             str_hex += str_b
 
         if unicode_range:
-            return Hash.convert_hash_to_char(
-                hash_hex_string = str_hex,
-                unicode_range   = unicode_range
+            return Hash.convert_ascii_string_to_other_alphabet(
+                ascii_char_string = str_hex,
+                unicode_range     = unicode_range,
+                group_n_char      = 4
             )
         else:
             return '0x' + str_hex
