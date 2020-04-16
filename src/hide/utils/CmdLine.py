@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
-import nwae.utils.StringUtils as su
+import hide.utils.StringUtils as su
 
 
 class CmdLine:

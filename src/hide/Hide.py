@@ -34,7 +34,8 @@ class Hide:
         except Exception as ex_json:
             errmsg = \
                 str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Exception loading json: ' + str(ex_json)
+                + ': Exception loading json: ' + str(records_json_str)\
+                + '. Got exception: ' + str(ex_json)
             Log.error(errmsg)
             return errmsg
 
@@ -195,7 +196,7 @@ if __name__ == '__main__':
         # Don't need indexing
         # index       = False
     )
-    #print(json_str)
+    print(json_str)
 
     for col_instruction in [
         ('Name', False, False), ('Phone', True, False), ('Email', False, False), ('BankAcc', True, False)

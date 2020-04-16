@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import flask
+from flask import request
 import hide.utils.Log as lg
 from inspect import currentframe, getframeinfo
-import json
 import hide.utils.CmdLine as cl
 import os
 import re
+from hide.Hide import Hide
+
 
 #
 # Flask is not multithreaded, all requests are lined up. This explains why request
@@ -23,31 +25,32 @@ app = flask.Flask(__name__)
 #
 class HideApi:
 
+    # http://localhost:5000/hide?records=[{"MemberKey":"jinping","Name":"习近平"},{"MemberKey":"jinping2","Name":"%20习近平"}]&hide_colname=Name&is_number_only=0&case_sensitive=0&encrypt_key_str=xxxxxxxyyyyyzzzz
     EXAMPLE_USAGE = \
         'http://localhost:5000/hide?'\
-        +'ret=1&'\
-        +'pattern=m,float,dollar/dollars/make/$;y,number,year/yr,2-4&'\
-        +'txt=my salary in year 2019 is $8888.'
+        +'records=[{"MemberKey":"jinping","Name":"习近平"},{"MemberKey":"jinping2","Name":" 习近平"}]'\
+        +'&hide_colname=Name&is_number_only=0&case_sensitive=0&encrypt_key_str=xxxxxxxyyyyyzzzz'
 
     def __init_rest_urls(self):
         #
         # Mex parameters extraction
         #
-        @self.app.route('/mex', methods=['GET'])
-        def gbot_api_get_mex_params():
-            pattern = self.get_param(param_name='pattern', method='GET')
-            text = self.get_param(param_name='txt', method='GET')
-            ret_how_many = self.get_param(param_name='ret', method='GET')
-
-            if not (pattern and text):
-                return 'Missing parameters "pattern" or "txt". '\
-                       + 'Example Usage: "' + HideApi.EXAMPLE_USAGE + '".'
-            ret_one_value = True
-            if ret_how_many == '2':
-                ret_one_value = False
-            return self.get_hide_params(
-                pattern=pattern, text=text, return_one_value=ret_one_value
+        @self.app.route('/hide', methods=['GET', 'POST'])
+        def api_hide():
+            method = request.method
+            records_json_str = self.get_param(param_name='records', method=method)
+            hide_colname = self.get_param(param_name='hide_colname', method=method)
+            is_number_only = self.get_param(param_name='is_number_only', method=method)
+            case_sensitive = self.get_param(param_name='case_sensitive', method=method)
+            encrypt_key_str = self.get_param(param_name='encrypt_key_str', method=method)
+            return self.hide_data(
+                records_json_str = records_json_str,
+                hide_colname     = hide_colname,
+                is_number_only   = is_number_only,
+                case_sensitive   = case_sensitive,
+                encrypt_key_str  = encrypt_key_str,
             )
+
         @self.app.errorhandler(404)
         def page_not_found(e):
             lg.Log.error(str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -65,14 +68,27 @@ class HideApi:
 
     def hide_data(
             self,
-            data
+            # In string JSON
+            records_json_str,
+            # Column names to hide
+            hide_colname,
+            encrypt_key_str,
+            is_number_only   = False,
+            case_sensitive   = False,
+            hash_encode_lang = 'zh',
     ):
         try:
-            pass
+            return Hide().hide_data(
+                records_json_str = records_json_str,
+                hide_colname     = hide_colname,
+                is_number_only   = (is_number_only in [1, '1', 'y', 'yes']),
+                case_sensitive   = (case_sensitive in [1, '1', 'y', 'yes']),
+                encrypt_key_str  = encrypt_key_str
+            )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                      + ' Exception occurred IP ' + str(flask.request.remote_addr) \
-                     + ', data ' + str(data) \
+                     + ', records ' + str(records_json_str) \
                      + ', exception ' + str(ex) + '.'
             lg.Log.error(errmsg)
             if lg.Log.DEBUG_PRINT_ALL_TO_SCREEN:
@@ -94,7 +110,7 @@ class HideApi:
                            + ': No param name [' + param_name + '] in request.')
                 return None
 
-    def run_mex_api(self, host='0.0.0.0'):
+    def run_hide_api(self, host='0.0.0.0'):
         self.app.run(
             host = host,
             port = self.port,
@@ -106,7 +122,7 @@ class HideApi:
 # Decide whether to run multi-threaded in gunicorn or not
 #
 pv = cl.CmdLine.get_cmdline_params(pv_default={'gunicorn': '0'})
-mex_api = HideApi()
+rest_api = HideApi()
 cwd = os.getcwd()
 cwd = re.sub(pattern='([/\\\\]hide[/\\\\]).*', repl='/hide/', string=cwd)
 lg.Log.LOGFILE = cwd + 'logs/hide.log'
@@ -116,4 +132,4 @@ if pv['gunicorn'] == '1':
     # Port and Host specified on command line already for gunicorn
 else:
     lg.Log.important('Starting Mex API without gunicorn from folder "' + str(cwd))
-    mex_api.run_mex_api()
+    rest_api.run_hide_api()
