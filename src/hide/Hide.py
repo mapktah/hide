@@ -9,6 +9,7 @@ from hide.utils.StringUtils import StringUtils
 from hide.utils.Hash import Hash
 from hide.utils.Obfuscate import Obfuscate
 from hide.utils.Encrypt import AES_Encrypt, AES
+from base64 import b64decode
 
 
 class Hide:
@@ -22,7 +23,8 @@ class Hide:
             records_json_str,
             # Column names to hide
             hide_colname,
-            encrypt_key_str,
+            encrypt_key_b64,
+            nonce_b64        = None,
             is_number_only   = False,
             case_sensitive   = False,
             hash_encode_lang = 'zh',
@@ -115,7 +117,11 @@ class Hide:
 
         df[colname_hash_readable] = df[colname_hash].apply(obfuscate_hash_to_lang, args=[hash_encode_lang])
 
-        key_bytes = encrypt_key_str.encode('utf-8')
+        key_bytes = b64decode(encrypt_key_b64.encode('utf-8'))
+        if nonce_b64 is not None:
+            nonce_bytes = b64decode(nonce_b64.encode(encoding='utf-8'))
+        else:
+            nonce_bytes = None
         Log.important(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Key bytes "' + str(key_bytes) + '", len = ' + str(len(key_bytes))
@@ -123,6 +129,7 @@ class Hide:
         encryptor = AES_Encrypt(
             key   = key_bytes,
             mode  = AES.MODE_CBC,
+            nonce = nonce_bytes
         )
         def encrypt(
                 x,
@@ -132,13 +139,20 @@ class Hide:
                 # print('***** x=' + str(x))
                 x_bytes = bytes(x.encode(encoding='utf-8'))
                 # print('***** x_bytes=' + str(x_bytes))
-                ciphertext = encryptor.encode(x_bytes)
+                res = encryptor.encode(x_bytes)
+                ciphertext_b64 = res.ciphertext_b64
+                tag_b64 = res.tag_b64
+                nonce_b64 = res.nonce_b64
                 # print('***** cipher=' + str(cipher) + ', bytelen=' + str(len(cipher)))
-                plaintext = encryptor.decode(ciphertext=ciphertext)
+                plaintext = encryptor.decode(ciphertext=ciphertext_b64)
                 #print('***** decrypted=' + str(plaintext) + ', ok=' + str(plaintext==x))
                 if plaintext != x:
                     raise Exception('Decrypt Failed for x "' + str(x) + '", decypted "' + str(plaintext) + '"')
-                return ciphertext
+                return {
+                    'ciphertext_b64': ciphertext_b64,
+                    'tag_b64': tag_b64,
+                    'nonce_b64': nonce_b64
+                }
             except Exception as ex:
                 Log.error(
                     str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -206,7 +220,7 @@ if __name__ == '__main__':
             hide_colname     = col_instruction[0],
             is_number_only   = col_instruction[1],
             case_sensitive   = col_instruction[2],
-            encrypt_key_str  = 'Sixteen byte key'
+            encrypt_key_b64  = 'U2l4dGVlbiBieXRlIGtleVNpeHRlZW4gYnl0ZSBrZXk='
         )
         print(res)
 
