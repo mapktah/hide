@@ -12,7 +12,7 @@ UNIT_TEST_SCRIPT="./run.unittest.sh"
 RUN_SCRIPT="./run.hide.sh"
 KILL_SCRIPT="./kill.by.port.sh"
 CLEANUP_SCRIPT=""
-LOGFILE_FOLDER=".."
+LOGFILE_FOLDER="../logs"
 DO_TEST_AFTER_START=0
 # Config Files
 CONFIGFILE_LOCAL="../app.data/config/local.cf"
