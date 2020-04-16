@@ -43,8 +43,8 @@ class Hide:
         colname_last4char        = str(hide_colname) + '_last4char'
         colname_hash             = str(hide_colname) + '_hash'
         colname_hash_readable    = str(hide_colname) + '_hash_readable'
-        colname_encrypt          = str(hide_colname) + '_encrypt'
-        colname_encrypt_readable = str(hide_colname) + '_encrypt_readable'
+        colname_encrypt          = str(hide_colname) + '_encrypt_b64'
+        colname_encrypt_readable = str(hide_colname) + '_encrypt_b64_readable'
 
         df = pd.DataFrame(records_json)
         Log.debug(

@@ -61,7 +61,7 @@ class HideApi:
             self
     ):
         self.app = app
-        self.port = 5000
+        self.port = 5088
         self.app.config['DEBUG'] = False
         self.__init_rest_urls()
         return
