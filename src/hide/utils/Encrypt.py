@@ -2,9 +2,9 @@
 
 import os
 import random
-# pycryptodome
+# pip install pycryptodome
 from Crypto.Cipher import AES
-from nwae.utils.Log import Log
+from hide.utils.Log import Log
 
 
 STR_ENCODING = 'utf-8'

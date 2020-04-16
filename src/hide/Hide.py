@@ -5,10 +5,10 @@ from inspect import currentframe, getframeinfo
 import json
 import re
 import pandas as pd
-import numpy as np
 from hide.utils.StringUtils import StringUtils
 from hide.utils.Hash import Hash
 from hide.utils.Obfuscate import Obfuscate
+from hide.utils.Encrypt import AES_Encrypt, AES
 
 
 class Hide:
@@ -39,9 +39,10 @@ class Hide:
             records_json_str,
             # Column names to hide
             hide_colname,
-            is_number_only = False,
-            case_sensitive = False,
-            encode_lang    = 'zh'
+            encrypt_key_str,
+            is_number_only   = False,
+            case_sensitive   = False,
+            hash_encode_lang = 'zh',
     ):
         try:
             records_json = json.loads(
@@ -107,29 +108,80 @@ class Hide:
                 desired_byte_length = desired_byte_len
             )
             s = obf.hexdigest(
-                bytes_list=bytes_list,
-                unicode_range=None
+                bytes_list    = bytes_list,
+                unicode_range = None
             )
             return s[2:len(s)]
 
         df[colname_hash] = df[colname_clean].apply(obfuscate, args=[32])
 
-        def obfuscate_to_chinese(
+        def obfuscate_hash_to_lang(
                 x,
-                desired_byte_len = 32
+                lang
         ):
-            obf = Obfuscate()
-            bytes_list = obf.hash_compression(
-                s                   = str(x),
-                desired_byte_length = 32
+            unicode_range = Hash.BLOCK_CHINESE
+            if lang == 'ko':
+                unicode_range = Hash.BLOCK_KOREAN_SYL
+            s = Hash.convert_hash_to_char(
+                hash_hex_string = x,
+                unicode_range   = unicode_range
             )
-            s = obf.hexdigest(
-                bytes_list    = bytes_list,
-                unicode_range = Hash.BLOCK_CHINESE
+            return s
+            #return s[2:len(s)]
+
+        df[colname_hash_readable] = df[colname_hash].apply(obfuscate_hash_to_lang, args=[hash_encode_lang])
+
+        key_bytes = bytes(encrypt_key_str.encode('utf-8'))
+        Log.important(
+            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Key bytes "' + str(key_bytes) + '", len = ' + str(len(key_bytes))
+        )
+        encryptor = AES_Encrypt(
+            key   = key_bytes,
+            mode  = AES.MODE_CBC,
+        )
+        def encrypt(
+                x,
+                encryptor
+        ):
+            try:
+                # print('***** x=' + str(x))
+                x_bytes = bytes(x.encode(encoding='utf-8'))
+                # print('***** x_bytes=' + str(x_bytes))
+                cipher = encryptor.encode(x_bytes)
+                ciphertext = str(cipher)
+                print('***** cipher=' + str(cipher) + ', bytelen=' + str(len(cipher)))
+                # plaintext = encryptor.decode(ciphertext=cipher)
+                # print('***** decrypted=' + str(plaintext) + ', ok=' + str(plaintext==x))
+                # if plaintext != x:
+                #     raise Exception('Decrypt Failed for x "' + str(x) + '", decypted "' + str(plaintext) + '"')
+                return ciphertext
+            except Exception as ex:
+                Log.error(
+                    str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Error encrypting "' + str(x) + '": ' + str(ex)
+                )
+                return None
+
+        df[colname_encrypt] = df[colname_clean].apply(encrypt, args=[encryptor])
+
+        def obfuscate_cipher_to_lang(
+                x,
+                lang
+        ):
+            x_bytes = bytes(x.encode(encoding='utf-8'))
+            print('*** x=' + str(x))
+            print('*** xbytes=' + str(x_bytes))
+            unicode_range = Hash.BLOCK_CHINESE
+            if lang == 'ko':
+                unicode_range = Hash.BLOCK_KOREAN_SYL
+            s = Hash.convert_hash_to_char(
+                hash_hex_string = x,
+                unicode_range   = unicode_range
             )
             return s[2:len(s)]
 
-        df[colname_hash_readable] = df[colname_clean].apply(obfuscate_to_chinese, args=[32])
+        # df[colname_encrypt_readable] = df[colname_encrypt].apply(obfuscate_cipher_to_lang, args=[hash_encode_lang])
 
         df_json_str = df.to_json(
             # Make sure not ASCII
@@ -140,69 +192,6 @@ class Hide:
         )
 
         return df_json_str
-
-        # TODO This need to be by currency and country
-        df['__phone'] = df[CloneMemberDataHandleSource.COL_MBR_PHONE].apply(PhoneNumber.filter_phone_china)
-
-        def filter_bank_acc(x):
-            try:
-                str_bankacc = re.sub(pattern='[^0-9]', repl='', string=str(x))
-                # TODO Should we remove leading 0's? As some people might leave them out?
-                return str_bankacc
-            except Exception:
-                return None
-
-        df['__bank_acc'] = df[CloneMemberDataHandleSource.COL_MBR_BANKACC].apply(filter_bank_acc)
-
-        def filter_email(x):
-            try:
-                str_email = StringUtils.trim(str(x).lower())
-                return str_email
-            except Exception:
-                return None
-
-        df['__email'] = df[CloneMemberDataHandleSource.COL_MBR_EMAIL].apply(filter_email)
-
-        def last4digit(x):
-            len_x = len(str(x))
-            start = max(0, len_x - 4)
-            return '***' + str(x)[start:len_x]
-
-        df['__phone_last4'] = df['__phone'].apply(last4digit)
-        df['__bank_acc_last4'] = df['__bank_acc'].apply(last4digit)
-
-        def obfuscate(x):
-            obf = Obfuscate()
-            bytes_list = obf.hash_compression(
-                s=str(x),
-                desired_byte_length=8
-            )
-            s = obf.hexdigest(
-                bytes_list=bytes_list,
-                unicode_range=None
-            )
-            return s[2:len(s)]
-
-        def obfuscate_to_chinese(x):
-            obf = Obfuscate()
-            bytes_list = obf.hash_compression(
-                s=str(x),
-                desired_byte_length=8
-            )
-            s = obf.hexdigest(
-                bytes_list=bytes_list,
-                unicode_range=Hash.BLOCK_CHINESE
-            )
-            return s[2:len(s)]
-
-        df[CloneMemberDataHandleSource.COL_NAME_HASH]    = df['__name'].apply(obfuscate_to_chinese)
-        df[CloneMemberDataHandleSource.COL_PHONE_HASH]   = df['__phone'].apply(obfuscate)
-        df[CloneMemberDataHandleSource.COL_EMAIL_HASH]   = df['__email'].apply(obfuscate_to_chinese)
-        df[CloneMemberDataHandleSource.COL_BANKACC_HASH] = df['__bank_acc'].apply(obfuscate)
-        df.to_csv('preprocessed_clonemember_hash.csv')
-
-        self.pp_data = df
-        return
 
 
 if __name__ == '__main__':
@@ -234,6 +223,7 @@ if __name__ == '__main__':
             hide_colname     = col_instruction[0],
             is_number_only   = col_instruction[1],
             case_sensitive   = col_instruction[2],
+            encrypt_key_str  = 'Sixteen byte key'+'Sixteen byte key'
         )
         print(res)
 
