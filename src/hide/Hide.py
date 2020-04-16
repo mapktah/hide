@@ -131,7 +131,7 @@ class Hide:
 
         df[colname_hash_readable] = df[colname_hash].apply(obfuscate_hash_to_lang, args=[hash_encode_lang])
 
-        key_bytes = bytes(encrypt_key_str.encode('utf-8'))
+        key_bytes = encrypt_key_str.encode('utf-8')
         Log.important(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Key bytes "' + str(key_bytes) + '", len = ' + str(len(key_bytes))
@@ -148,13 +148,12 @@ class Hide:
                 # print('***** x=' + str(x))
                 x_bytes = bytes(x.encode(encoding='utf-8'))
                 # print('***** x_bytes=' + str(x_bytes))
-                cipher = encryptor.encode(x_bytes)
-                ciphertext = str(cipher)
-                print('***** cipher=' + str(cipher) + ', bytelen=' + str(len(cipher)))
-                # plaintext = encryptor.decode(ciphertext=cipher)
-                # print('***** decrypted=' + str(plaintext) + ', ok=' + str(plaintext==x))
-                # if plaintext != x:
-                #     raise Exception('Decrypt Failed for x "' + str(x) + '", decypted "' + str(plaintext) + '"')
+                ciphertext = encryptor.encode(x_bytes)
+                # print('***** cipher=' + str(cipher) + ', bytelen=' + str(len(cipher)))
+                plaintext = encryptor.decode(ciphertext=ciphertext)
+                #print('***** decrypted=' + str(plaintext) + ', ok=' + str(plaintext==x))
+                if plaintext != x:
+                    raise Exception('Decrypt Failed for x "' + str(x) + '", decypted "' + str(plaintext) + '"')
                 return ciphertext
             except Exception as ex:
                 Log.error(
@@ -223,7 +222,7 @@ if __name__ == '__main__':
             hide_colname     = col_instruction[0],
             is_number_only   = col_instruction[1],
             case_sensitive   = col_instruction[2],
-            encrypt_key_str  = 'Sixteen byte key'+'Sixteen byte key'
+            encrypt_key_str  = 'Sixteen byte key'
         )
         print(res)
 
