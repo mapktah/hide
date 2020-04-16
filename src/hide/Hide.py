@@ -13,23 +13,6 @@ from hide.utils.Encrypt import AES_Encrypt, AES
 
 class Hide:
 
-    COL_MBR_KEY     = 'MemberKey'
-    COL_MBR_NAME    = 'Name'
-    COL_MBR_PHONE   = 'Phone'
-    COL_MBR_EMAIL   = 'Email'
-    COL_MBR_BANKACC = 'BankAcc'
-
-    # Feature columns
-    COL_NAME_HASH    = '__name_hash'
-    COL_PHONE_HASH   = '__phone_hash'
-    COL_EMAIL_HASH   = '__email_hash'
-    COL_BANKACC_HASH = '__bank_acc_hash'
-    FEATURE_COLUMNS = [
-        COL_NAME_HASH, COL_PHONE_HASH, COL_EMAIL_HASH, COL_BANKACC_HASH
-    ]
-
-    DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-
     def __init__(self):
         return
 
@@ -178,7 +161,7 @@ class Hide:
                 hash_hex_string = x,
                 unicode_range   = unicode_range
             )
-            return s[2:len(s)]
+            return s
 
         # df[colname_encrypt_readable] = df[colname_encrypt].apply(obfuscate_cipher_to_lang, args=[hash_encode_lang])
 
