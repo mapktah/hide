@@ -7,8 +7,8 @@ import re
 import pandas as pd
 from hide.utils.StringUtils import StringUtils
 from hide.utils.Hash import Hash
-from hide.utils.Obfuscate import Obfuscate
 from hide.utils.Encrypt import AES_Encrypt
+from hide.utils.PhoneNumber import PhoneNumber
 from base64 import b64decode
 from hide.utils.Profiling import Profiling
 
@@ -28,9 +28,11 @@ class Hide:
             nonce_b64        = None,
             is_number_only   = False,
             case_sensitive   = False,
+            # We support processing only China for now
+            process_phone_country = None,
             hash_encode_lang = 'zh',
     ):
-        start_time = Profiling.start()
+        step = 0
 
         if type(records_json) is str:
             try:
@@ -47,10 +49,10 @@ class Hide:
 
         colname_clean            = str(hide_colname) + '_clean'
         colname_last4char        = str(hide_colname) + '_last4char'
-        colname_hash             = str(hide_colname) + '_hash'
-        colname_hash_readable    = str(hide_colname) + '_hash_readable'
-        colname_encrypt          = str(hide_colname) + '_encrypt_b64'
-        colname_encrypt_readable = str(hide_colname) + '_encrypt_b64_readable'
+        colname_hash             = str(hide_colname) + '_sha256'
+        colname_hash_readable    = str(hide_colname) + '_sha256_readable'
+        colname_encrypt          = str(hide_colname) + '_encrypt'
+        colname_encrypt_readable = str(hide_colname) + '_encrypt_readable'
 
         df = pd.DataFrame(records_json)
         Log.debug(
@@ -72,6 +74,7 @@ class Hide:
         #  - Extract last 4 digits of phone/bank-account numbers to separate columns
         #  - Obfuscate the phone numbers, bank accounts for storage in cube
         #
+        step += 1
         start_filter_time = Profiling.start()
         def filter_col(
                 x,
@@ -92,12 +95,52 @@ class Hide:
         end_filter_time = Profiling.stop()
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_filter_time, stop=end_filter_time, decimals=2))
+            + ': Step ' + str(step) + ': BASIC CLEANING Took '
+            + str(Profiling.get_time_dif_secs(start=start_filter_time, stop=end_filter_time, decimals=2))
             + ' secs. Successfully cleaned column "' + str(hide_colname)+
             '", case sensitive "' + str(case_sensitive)
             + '", is number "' + str(is_number_only) + '"'
         )
 
+        #
+        # Process Phone Number by Country
+        #
+        step += 2
+        start_phone_time = Profiling.start()
+        def process_phone(
+                x,
+                country
+        ):
+            try:
+                if country == 'china':
+                    return PhoneNumber.filter_phone_china(x)
+                else:
+                    Log.error(
+                        str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                        + ': Unsupported country "' + str(country) + '"'
+                    )
+                    return x
+            except Exception as ex:
+                Log.error(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Exception processing phone "' + str(x) + '". Exception ' + str(ex)
+                )
+                return x
+
+        if process_phone_country == 'china':
+            df[colname_clean] = df[colname_clean].apply(process_phone, args=[process_phone_country])
+            Log.important(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Step ' + str(step) + ': PHONE CLEANING Took '
+                + str(Profiling.get_time_dif_secs(start=start_filter_time, stop=end_filter_time, decimals=2))
+                + ' secs. Successfully processed phone for column "' + str(hide_colname)
+                + '"'
+            )
+
+        #
+        # Extract last 4 characters
+        #
+        step += 1
         start_last4_time = Profiling.start()
         def last4char(
                 x
@@ -109,26 +152,35 @@ class Hide:
         end_last4_time = Profiling.stop()
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Step ' + str(step) + ': EXTRACT LAST 4 CHAR Took '
             + ': Took ' + str(Profiling.get_time_dif_secs(start=start_last4_time, stop=end_last4_time, decimals=2))
             + ' secs. Successfully extracted last 4 chars from column "' + str(hide_colname)
             + '"'
         )
 
+        #
+        # Hash the column
+        #
+        step += 1
         start_hash_time = Profiling.start()
         def obfuscate(
                 x,
                 desired_byte_len = 32
         ):
-            obf = Obfuscate()
-            bytes_list = obf.hash_compression(
-                s                   = str(x),
-                desired_byte_length = desired_byte_len
+            s = Hash.hash(
+                string = x,
+                algo   = Hash.ALGO_SHA256
             )
-            s = obf.hexdigest(
-                bytes_list    = bytes_list,
-                unicode_range = None
-            )
-            return s[2:len(s)]
+            # obf = Obfuscate()
+            # bytes_list = obf.hash_compression(
+            #     s                   = str(x),
+            #     desired_byte_length = desired_byte_len
+            # )
+            # s = obf.hexdigest(
+            #     bytes_list    = bytes_list,
+            #     unicode_range = None
+            # )
+            return s
 
         df[colname_hash] = df[colname_clean].apply(obfuscate, args=[32])
         stop_hash_time = Profiling.start()
@@ -153,7 +205,6 @@ class Hide:
                 group_n_char      = 4
             )
             return s
-            #return s[2:len(s)]
 
         df[colname_hash_readable] = df[colname_hash].apply(obfuscate_hash_to_lang, args=[hash_encode_lang])
         Log.important(

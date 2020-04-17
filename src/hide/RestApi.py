@@ -40,23 +40,25 @@ class HideApi:
             method = request.method
             # Could be string (GET) or dict (POST)
             records_json = self.get_param(param_name='records', method=method)
-            hide_colname = self.get_param(param_name='hide_colname', method=method)
+            col_to_hide = self.get_param(param_name='col_to_hide', method=method)
             is_number_only = self.get_param(param_name='is_number_only', method=method)
             case_sensitive = self.get_param(param_name='case_sensitive', method=method)
+            process_phone_country = self.get_param(param_name='process_phone_country', method=method)
             encrypt_key_b64 = self.get_param(param_name='encrypt_key_b64', method=method)
             nonce_b64 = self.get_param(param_name='nonce_b64', method=method)
             Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-                + ': Received parameters: hide colname "' + str(hide_colname)
+                + ': Received parameters: hide colname "' + str(col_to_hide)
                 + '", nonce base64 "' + str(nonce_b64) + '"'
             )
             return self.hide_data(
-                records_json     = records_json,
-                hide_colname     = hide_colname,
-                is_number_only   = is_number_only,
-                case_sensitive   = case_sensitive,
-                encrypt_key_b64  = encrypt_key_b64,
-                nonce_b64        = nonce_b64
+                records_json          = records_json,
+                hide_colname          = col_to_hide,
+                is_number_only        = is_number_only,
+                case_sensitive        = case_sensitive,
+                process_phone_country = process_phone_country,
+                encrypt_key_b64       = encrypt_key_b64,
+                nonce_b64             = nonce_b64
             )
 
         @self.app.errorhandler(404)
@@ -86,16 +88,18 @@ class HideApi:
             nonce_b64,
             is_number_only   = False,
             case_sensitive   = False,
+            process_phone_country = None,
             hash_encode_lang = 'zh',
     ):
         try:
             return Hide().hide_data(
-                records_json     = records_json,
-                hide_colname     = hide_colname,
-                is_number_only   = (is_number_only in [1, '1', 'y', 'yes']),
-                case_sensitive   = (case_sensitive in [1, '1', 'y', 'yes']),
-                encrypt_key_b64  = encrypt_key_b64,
-                nonce_b64        = nonce_b64
+                records_json          = records_json,
+                hide_colname          = hide_colname,
+                is_number_only        = (is_number_only in [1, '1', 'y', 'yes']),
+                case_sensitive        = (case_sensitive in [1, '1', 'y', 'yes']),
+                process_phone_country = process_phone_country,
+                encrypt_key_b64       = encrypt_key_b64,
+                nonce_b64             = nonce_b64
             )
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \

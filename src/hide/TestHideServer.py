@@ -20,7 +20,7 @@ CHARS_SPECIAL = '`~!@#$%^&*()_+-=[]\{}|[]\\;\':",./<>?'
 # Create random data
 #
 load_test_records = []
-for i in range(100000):
+for i in range(10000):
     load_test_records.append({
         'MemberKey': ''.join(random.choice(CHARS_ASCII + CHARS_NUMBER) for j in range(randint(6,10))),
         'Name': ''.join(chr(randint(BLOCK_CHINESE[0], BLOCK_CHINESE[1])) for k in range(randint(3,5))),
@@ -35,7 +35,8 @@ print(load_test_records)
 #
 data = {
     'records': load_test_records,
-    'hide_colname': "Name",
+    'col_to_hide': "Name",
+    'process_phone_country': None,
     'encrypt_key_b64': 'U2l4dGVlbiBieXRlIGtleVNpeHRlZW4gYnl0ZSBrZXk='
 }
 
