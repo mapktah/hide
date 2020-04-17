@@ -17,7 +17,7 @@ CHARS_NUMBER = '1234567890'
 CHARS_SPECIAL = '`~!@#$%^&*()_+-=[]\{}|[]\\;\':",./<>?'
 
 load_test_records = []
-for i in range(100000):
+for i in range(10000):
     load_test_records.append({
         'MemberKey': ''.join(random.choice(CHARS_ASCII + CHARS_NUMBER) for j in range(randint(6,10))),
         'Name': ''.join(chr(randint(BLOCK_CHINESE[0], BLOCK_CHINESE[1])) for k in range(randint(3,5))),

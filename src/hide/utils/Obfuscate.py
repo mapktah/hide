@@ -58,7 +58,7 @@ class Obfuscate:
     ):
         if desired_byte_length % 4 != 0:
             raise Exception(
-                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Desired byte length must be 0 modulo-4, given = ' + str(desired_byte_length)
             )
 
@@ -79,7 +79,10 @@ class Obfuscate:
         n_blocks = int( len(h) / desired_byte_length )
         # 8 bytes block length
         block_len = int( len(h) / n_blocks )
-        # print('Number of blocks = ' + str(n_blocks) + ', block length = ' + str(block_len))
+        Log.debugdebug(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Number of blocks = ' + str(n_blocks) + ', block length = ' + str(block_len)
+        )
 
         # First block
         bytes_xor = h[0:block_len]
@@ -89,7 +92,7 @@ class Obfuscate:
             cur_block = h[idx_start:idx_end]
             if len(bytes_xor) != len(cur_block):
                 raise Exception(
-                    str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                     + ': Different block lengths "' + str(bytes_xor)
                     + '", and "' + str(cur_block) + '"'
                 )
@@ -111,13 +114,13 @@ class Obfuscate:
         for x in t12:
             byte_xor = x[0] ^ x[1]
             Log.debugdebug(
-                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + 'XOR "' + str(hex(x[0])) + '" and "' + str(hex(x[1])) + '" = ' + str(hex(byte_xor))
             )
             res_xor.append(byte_xor)
 
         Log.debug(
-            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': XOR between "' + str(self.hexdigest(b1))
             + '" and "' + str(self.hexdigest(b2))
             + '" = "' + str(self.hexdigest(res_xor)) + '"'
@@ -150,12 +153,12 @@ class Obfuscate:
             s2 += s2[(i-len_s2)]
 
         Log.debug(
-            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': After appending, XOR between "' + str(s1) + '" and "' + str(s2) + '".'
         )
 
         Log.debugdebug(
-            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': s1 "' + str(s1) + '", s2 "' + str(s2) + '"'
         )
 
