@@ -65,7 +65,7 @@ class Hide:
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Start processing records, hide column "' + str(hide_colname)
-            + '". Records first 100 rows' +  str(records_json[0:min(100,len(records_json))])
+            + '". Records of sample rows' +  str(records_json[0:min(10,len(records_json))])
         )
 
         #
@@ -87,19 +87,19 @@ class Hide:
                 if not case_sensitive:
                     x = x.lower()
                 if is_number_only:
-                    x = re.sub(pattern='[^0-9]', repl='', string=str(x))
+                    x = re.sub(pattern='[^0-9]', repl='', string=x)
                 return x
             except Exception:
                 return None
         df[colname_clean] = df[hide_colname].apply(filter_col, args=(is_number_only, case_sensitive))
-        end_filter_time = Profiling.stop()
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Step ' + str(step) + ': BASIC CLEANING Took '
-            + str(Profiling.get_time_dif_secs(start=start_filter_time, stop=end_filter_time, decimals=2))
+            + str(Profiling.get_time_dif_secs(start=start_filter_time, stop=Profiling.stop(), decimals=2))
             + ' secs. Successfully cleaned column "' + str(hide_colname)+
             '", case sensitive "' + str(case_sensitive)
-            + '", is number "' + str(is_number_only) + '"'
+            + '", is number "' + str(is_number_only)
+            + '", sample rows: ' + str(df[0:2])
         )
 
         #
@@ -132,9 +132,9 @@ class Hide:
             Log.important(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Step ' + str(step) + ': PHONE CLEANING Took '
-                + str(Profiling.get_time_dif_secs(start=start_filter_time, stop=end_filter_time, decimals=2))
+                + str(Profiling.get_time_dif_secs(start=start_phone_time, stop=Profiling.stop(), decimals=2))
                 + ' secs. Successfully processed phone for column "' + str(hide_colname)
-                + '"'
+                + '", sample rows: ' + str(df[0:2])
             )
 
         #
@@ -149,11 +149,10 @@ class Hide:
             start = max(0, len_x - 4)
             return '***' + str(x)[start:len_x]
         df[colname_last4char] = df[colname_clean].apply(last4char)
-        end_last4_time = Profiling.stop()
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Step ' + str(step) + ': EXTRACT LAST 4 CHAR Took '
-            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_last4_time, stop=end_last4_time, decimals=2))
+            + str(Profiling.get_time_dif_secs(start=start_last4_time, stop=Profiling.stop(), decimals=2))
             + ' secs. Successfully extracted last 4 chars from column "' + str(hide_colname)
             + '"'
         )
@@ -163,7 +162,7 @@ class Hide:
         #
         step += 1
         start_hash_time = Profiling.start()
-        def obfuscate(
+        def hash(
                 x,
                 desired_byte_len = 32
         ):
@@ -182,15 +181,20 @@ class Hide:
             # )
             return s
 
-        df[colname_hash] = df[colname_clean].apply(obfuscate, args=[32])
+        df[colname_hash] = df[colname_clean].apply(hash, args=[32])
         stop_hash_time = Profiling.start()
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_hash_time, stop=stop_hash_time, decimals=2))
+            + ': Step ' + str(step) + ': HASH Took '
+            + str(Profiling.get_time_dif_secs(start=start_hash_time, stop=stop_hash_time, decimals=2))
             + ' secs. Successfully obfuscated column "' + str(hide_colname)
-            + '"'
+            + '", sample rows: ' + str(df[0:2])
         )
 
+        #
+        # Obfuscate Hash hexdigest to Chinese/etc characters
+        #
+        step += 1
         start_obflang_time = Profiling.start()
         def obfuscate_hash_to_lang(
                 x,
@@ -209,11 +213,16 @@ class Hide:
         df[colname_hash_readable] = df[colname_hash].apply(obfuscate_hash_to_lang, args=[hash_encode_lang])
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_obflang_time, stop=Profiling.stop(), decimals=2))
+            + ': Step ' + str(step) + ': HASH TO CHAR Took '
+            + str(Profiling.get_time_dif_secs(start=start_obflang_time, stop=Profiling.stop(), decimals=2))
             + ' secs. Successfully converted obfuscation to language for column "' + str(hide_colname)
             + '"'
         )
 
+        #
+        # Ecnryption
+        #
+        step += 1
         start_enc_time = Profiling.start()
         try:
             key_bytes = b64decode(encrypt_key_b64.encode('utf-8'))
@@ -234,6 +243,7 @@ class Hide:
             nonce_bytes = None
         Log.important(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Step ' + str(step) + ': HASH Took '
             + ': Key bytes "' + str(key_bytes) + '", len = ' + str(len(key_bytes))
         )
         encryptor = AES_Encrypt(
