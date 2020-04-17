@@ -89,8 +89,12 @@ class Hide:
                 if is_number_only:
                     x = re.sub(pattern='[^0-9]', repl='', string=x)
                 return x
-            except Exception:
-                return None
+            except Exception as ex_clean:
+                Log.error(
+                    str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                    + ': Error cleaning "' + str(x) + '". ' + str(ex_clean)
+                )
+                return x
         df[colname_clean] = df[hide_colname].apply(filter_col, args=(is_number_only, case_sensitive))
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -146,7 +150,7 @@ class Hide:
                 x
         ):
             len_x = len(str(x))
-            start = max(0, len_x - 4)
+            start = min(max(0, len_x - 4), len(x)-1)
             return '***' + str(x)[start:len_x]
         df[colname_last4char] = df[colname_clean].apply(last4char)
         Log.important(
