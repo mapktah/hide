@@ -131,16 +131,27 @@ class HideApi:
         )
 
 
+from hide.utils.CmdLine import CmdLine
 #
 # Decide whether to run multi-threaded in gunicorn or not
 #
 pv = cl.CmdLine.get_cmdline_params(pv_default={'gunicorn': '0'})
-rest_api = HideApi()
+cmdline_params = CmdLine.get_cmdline_params(
+    pv_default = pv
+)
+print('Command line params: ' + str(cmdline_params))
 cwd = os.getcwd()
-print('Current working directory "' + str(cwd) + '"')
-cwd = re.sub(pattern='([/\\\\]hide[/\\\\]).*', repl='/hide/', string=cwd)
-Log.LOGFILE = cwd + 'logs/hide.log'
-print('Logs will be directed to log file (with date) "' + str(Log.LOGFILE) + '"')
+
+if pv['debug'] in ['1','y','yes']:
+    Log.DEBUG_PRINT_ALL_TO_SCREEN = True
+    print('Logs will be directed to stdout')
+else:
+    print('Current working directory "' + str(cwd) + '"')
+    cwd = re.sub(pattern='([/\\\\]hide[/\\\\]).*', repl='/hide/', string=cwd)
+    Log.LOGFILE = cwd + 'logs/hide.log'
+    print('Logs will be directed to log file (with date) "' + str(Log.LOGFILE) + '"')
+
+rest_api = HideApi()
 if pv['gunicorn'] == '1':
     Log.important('Starting Hide API with gunicorn from folder "' + str(cwd))
     # Port and Host specified on command line already for gunicorn

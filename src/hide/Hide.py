@@ -10,6 +10,7 @@ from hide.utils.Hash import Hash
 from hide.utils.Obfuscate import Obfuscate
 from hide.utils.Encrypt import AES_Encrypt
 from base64 import b64decode
+from hide.utils.Profiling import Profiling
 
 
 class Hide:
@@ -29,6 +30,8 @@ class Hide:
             case_sensitive   = False,
             hash_encode_lang = 'zh',
     ):
+        start_time = Profiling.start()
+
         if type(records_json) is str:
             try:
                 records_json = json.loads(
@@ -52,8 +55,8 @@ class Hide:
         df = pd.DataFrame(records_json)
         Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Converted json object (first 100 records): '
-            + str(records_json[0:min(100,len(records_json))])
+            + ': Converted json object (first 20 records): '
+            + str(records_json[0:min(20,len(records_json))])
             + ' to data frame: ' + str(df)
         )
 
@@ -69,27 +72,33 @@ class Hide:
         #  - Extract last 4 digits of phone/bank-account numbers to separate columns
         #  - Obfuscate the phone numbers, bank accounts for storage in cube
         #
+        start_filter_time = Profiling.start()
         def filter_col(
                 x,
                 is_number_only = False,
                 case_sensitive = False
         ):
             try:
+                # We always trim no matter what
+                x = StringUtils.trim(str(x))
                 if not case_sensitive:
-                    x = StringUtils.trim(str(x).lower())
+                    x = x.lower()
                 if is_number_only:
                     x = re.sub(pattern='[^0-9]', repl='', string=str(x))
                 return x
             except Exception:
                 return None
         df[colname_clean] = df[hide_colname].apply(filter_col, args=(is_number_only, case_sensitive))
+        end_filter_time = Profiling.stop()
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Successfully cleaned column "' + str(hide_colname)+
+            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_filter_time, stop=end_filter_time, decimals=2))
+            + ' secs. Successfully cleaned column "' + str(hide_colname)+
             '", case sensitive "' + str(case_sensitive)
             + '", is number "' + str(is_number_only) + '"'
         )
 
+        start_last4_time = Profiling.start()
         def last4char(
                 x
         ):
@@ -97,12 +106,15 @@ class Hide:
             start = max(0, len_x - 4)
             return '***' + str(x)[start:len_x]
         df[colname_last4char] = df[colname_clean].apply(last4char)
+        end_last4_time = Profiling.stop()
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Successfully extracted last 4 chars from column "' + str(hide_colname)
+            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_last4_time, stop=end_last4_time, decimals=2))
+            + ' secs. Successfully extracted last 4 chars from column "' + str(hide_colname)
             + '"'
         )
 
+        start_hash_time = Profiling.start()
         def obfuscate(
                 x,
                 desired_byte_len = 32
@@ -119,12 +131,15 @@ class Hide:
             return s[2:len(s)]
 
         df[colname_hash] = df[colname_clean].apply(obfuscate, args=[32])
+        stop_hash_time = Profiling.start()
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Successfully obfuscated column "' + str(hide_colname)
+            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_hash_time, stop=stop_hash_time, decimals=2))
+            + ' secs. Successfully obfuscated column "' + str(hide_colname)
             + '"'
         )
 
+        start_obflang_time = Profiling.start()
         def obfuscate_hash_to_lang(
                 x,
                 lang
@@ -143,10 +158,12 @@ class Hide:
         df[colname_hash_readable] = df[colname_hash].apply(obfuscate_hash_to_lang, args=[hash_encode_lang])
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Successfully converted obfuscation to language for column "' + str(hide_colname)
+            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_obflang_time, stop=Profiling.stop(), decimals=2))
+            + ' secs. Successfully converted obfuscation to language for column "' + str(hide_colname)
             + '"'
         )
 
+        start_enc_time = Profiling.start()
         try:
             key_bytes = b64decode(encrypt_key_b64.encode('utf-8'))
         except Exception as ex_key_conversion:
@@ -187,10 +204,10 @@ class Hide:
                 tag_b64 = res.tag_b64
                 nonce_b64 = res.nonce_b64
                 # print('***** cipher=' + str(cipher) + ', bytelen=' + str(len(cipher)))
-                plaintext = encryptor.decode(ciphertext=ciphertext_b64)
-                #print('***** decrypted=' + str(plaintext) + ', ok=' + str(plaintext==x))
-                if plaintext != x:
-                    raise Exception('Decrypt Failed for x "' + str(x) + '", decypted "' + str(plaintext) + '"')
+                # plaintext = encryptor.decode(ciphertext=ciphertext_b64)
+                # print('***** decrypted=' + str(plaintext) + ', ok=' + str(plaintext==x))
+                # if plaintext != x:
+                #     raise Exception('Decrypt Failed for x "' + str(x) + '", decypted "' + str(plaintext) + '"')
                 return {
                     'ciphermode': ciphermode,
                     'ciphertext_b64': ciphertext_b64,
@@ -207,8 +224,9 @@ class Hide:
         df[colname_encrypt] = df[colname_clean].apply(encrypt, args=[encryptor])
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Successfully encrypted column "' + str(hide_colname)
-            + '", for records (first 100 rows): ' + str(df.values[0:min(100,df.shape[0])])
+            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_enc_time, stop=Profiling.stop(), decimals=2))
+            + ' secs. Successfully encrypted column "' + str(hide_colname)
+            + '", for records (first 20 rows): ' + str(df.values[0:min(20,df.shape[0])])
         )
 
         # def obfuscate_cipher_to_lang(
