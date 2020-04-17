@@ -8,7 +8,7 @@ import pandas as pd
 from hide.utils.StringUtils import StringUtils
 from hide.utils.Hash import Hash
 from hide.utils.Obfuscate import Obfuscate
-from hide.utils.Encrypt import AES_Encrypt, AES
+from hide.utils.Encrypt import AES_Encrypt
 from base64 import b64decode
 
 
@@ -20,7 +20,7 @@ class Hide:
     def hide_data(
             self,
             # In string JSON
-            records_json_str,
+            records_json,
             # Column names to hide
             hide_colname,
             encrypt_key_b64,
@@ -29,17 +29,18 @@ class Hide:
             case_sensitive   = False,
             hash_encode_lang = 'zh',
     ):
-        try:
-            records_json = json.loads(
-                records_json_str
-            )
-        except Exception as ex_json:
-            errmsg = \
-                str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
-                + ': Exception loading json: ' + str(records_json_str)\
-                + '. Got exception: ' + str(ex_json)
-            Log.error(errmsg)
-            return errmsg
+        if type(records_json) is str:
+            try:
+                records_json = json.loads(
+                    records_json
+                )
+            except Exception as ex_json:
+                errmsg = \
+                    str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno) \
+                    + ': Exception loading json: ' + str(records_json)\
+                    + '. Got exception: ' + str(ex_json)
+                Log.error(errmsg)
+                return errmsg
 
         colname_clean            = str(hide_colname) + '_clean'
         colname_last4char        = str(hide_colname) + '_last4char'
@@ -50,9 +51,15 @@ class Hide:
 
         df = pd.DataFrame(records_json)
         Log.debug(
-            str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Converted json str: ' + str(records_json_str)
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Converted json str: ' + str(records_json)
             + ' to data frame: ' + str(df)
+        )
+
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Start processing records, hide column "' + str(hide_colname)
+            + '"'
         )
 
         #
@@ -75,6 +82,12 @@ class Hide:
             except Exception:
                 return None
         df[colname_clean] = df[hide_colname].apply(filter_col, args=(is_number_only, case_sensitive))
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Successfully cleaned column "' + str(hide_colname)+
+            '", case sensitive "' + str(case_sensitive)
+            + '", is number "' + str(is_number_only) + '"'
+        )
 
         def last4char(
                 x
@@ -83,6 +96,11 @@ class Hide:
             start = max(0, len_x - 4)
             return '***' + str(x)[start:len_x]
         df[colname_last4char] = df[colname_clean].apply(last4char)
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Successfully extracted last 4 chars from column "' + str(hide_colname)
+            + '"'
+        )
 
         def obfuscate(
                 x,
@@ -100,6 +118,11 @@ class Hide:
             return s[2:len(s)]
 
         df[colname_hash] = df[colname_clean].apply(obfuscate, args=[32])
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Successfully obfuscated column "' + str(hide_colname)
+            + '"'
+        )
 
         def obfuscate_hash_to_lang(
                 x,
@@ -117,11 +140,28 @@ class Hide:
             #return s[2:len(s)]
 
         df[colname_hash_readable] = df[colname_hash].apply(obfuscate_hash_to_lang, args=[hash_encode_lang])
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Successfully converted obfuscation to language for column "' + str(hide_colname)
+            + '"'
+        )
 
-        key_bytes = b64decode(encrypt_key_b64.encode('utf-8'))
-        if nonce_b64 is not None:
+        try:
+            key_bytes = b64decode(encrypt_key_b64.encode('utf-8'))
+        except Exception as ex_key_conversion:
+            raise Exception(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Error converting base64 key "' + str(encrypt_key_b64)
+                + '" to bytes. Exception: ' + str(ex_key_conversion)
+            )
+        try:
             nonce_bytes = b64decode(nonce_b64.encode(encoding='utf-8'))
-        else:
+        except Exception as ex_nonce:
+            Log.warning(
+                str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+                + ': Error converting base64 nonce "' + str(nonce_b64)
+                + '" to bytes. Exception: ' + str(ex_nonce)
+            )
             nonce_bytes = None
         Log.important(
             str(__name__) + ' ' + str(getframeinfo(currentframe()).lineno)
@@ -129,7 +169,7 @@ class Hide:
         )
         encryptor = AES_Encrypt(
             key   = key_bytes,
-            mode  = AES.MODE_CBC,
+            mode  = AES_Encrypt.AES_MODE_CBC,
             nonce = nonce_bytes
         )
         def encrypt(
@@ -162,6 +202,11 @@ class Hide:
                 return None
 
         df[colname_encrypt] = df[colname_clean].apply(encrypt, args=[encryptor])
+        Log.important(
+            str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
+            + ': Successfully encrypted column "' + str(hide_colname)
+            + '"'
+        )
 
         # def obfuscate_cipher_to_lang(
         #         x,
@@ -209,7 +254,7 @@ if __name__ == '__main__':
         # Don't need indexing
         # index       = False
     )
-    print(json_str)
+    print('JSON string: ' + str(json_str))
 
     for col_instruction in [
         ('Name', False, False), ('Phone', True, False), ('Email', False, False), ('BankAcc', True, False)

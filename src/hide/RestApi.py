@@ -38,7 +38,8 @@ class HideApi:
         @self.app.route('/hide', methods=['GET', 'POST'])
         def api_hide():
             method = request.method
-            records_json_str = self.get_param(param_name='records', method=method)
+            # Could be string (GET) or dict (POST)
+            records_json = self.get_param(param_name='records', method=method)
             hide_colname = self.get_param(param_name='hide_colname', method=method)
             is_number_only = self.get_param(param_name='is_number_only', method=method)
             case_sensitive = self.get_param(param_name='case_sensitive', method=method)
@@ -48,10 +49,10 @@ class HideApi:
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Received parameters: hide colname "' + str(hide_colname)
                 + '", nonce base64 "' + str(nonce_b64)
-                + '"'
+                + '", records: ' + str(records_json)
             )
             return self.hide_data(
-                records_json_str = records_json_str,
+                records_json     = records_json,
                 hide_colname     = hide_colname,
                 is_number_only   = is_number_only,
                 case_sensitive   = case_sensitive,
@@ -78,8 +79,8 @@ class HideApi:
 
     def hide_data(
             self,
-            # In string JSON
-            records_json_str,
+            # In string JSON (GET), or dict (POST)
+            records_json,
             # Column names to hide
             hide_colname,
             encrypt_key_b64,
@@ -90,7 +91,7 @@ class HideApi:
     ):
         try:
             return Hide().hide_data(
-                records_json_str = records_json_str,
+                records_json     = records_json,
                 hide_colname     = hide_colname,
                 is_number_only   = (is_number_only in [1, '1', 'y', 'yes']),
                 case_sensitive   = (case_sensitive in [1, '1', 'y', 'yes']),
@@ -100,7 +101,7 @@ class HideApi:
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                      + ' Exception occurred IP ' + str(flask.request.remote_addr) \
-                     + ', records ' + str(records_json_str) \
+                     + ', records ' + str(records_json) \
                      + ', exception ' + str(ex) + '.'
             Log.error(errmsg)
             if Log.DEBUG_PRINT_ALL_TO_SCREEN:
