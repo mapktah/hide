@@ -139,6 +139,7 @@ class HideApi:
 pv = cl.CmdLine.get_cmdline_params(pv_default={'gunicorn': '0'})
 rest_api = HideApi()
 cwd = os.getcwd()
+print('Current working directory "' + str(cwd) + '"')
 cwd = re.sub(pattern='([/\\\\]hide[/\\\\]).*', repl='/hide/', string=cwd)
 Log.LOGFILE = cwd + 'logs/hide.log'
 print('Logs will be directed to log file (with date) "' + str(Log.LOGFILE) + '"')
