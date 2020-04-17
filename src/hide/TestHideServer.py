@@ -3,11 +3,6 @@
 import requests
 import json
 
-#
-# From src folder,
-#  PYTHONPATH="." /usr/local/bin/python3.6 nwae/broadcaster/Example.py https://myaggregator.url/chat-aggregator/ username password
-#
-# chat_aggregator_url = sys.argv[1]
 hide_url = 'http://localhost:5088/hide'
 datetime_format = '%Y-%m-%d %H:%M:%S'
 
