@@ -150,7 +150,10 @@ class Hide:
                 x
         ):
             len_x = len(str(x))
-            start = min(max(0, len_x - 4), len(x)-1)
+            if len_x >= 8:
+                start = max(0, len_x - 4)
+            else:
+                start = len_x-1
             return '***' + str(x)[start:len_x]
         df[colname_last4char] = df[colname_clean].apply(last4char)
         Log.important(
