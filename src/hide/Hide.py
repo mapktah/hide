@@ -181,6 +181,7 @@ class Hide:
                 x_bytes = bytes(x.encode(encoding='utf-8'))
                 # print('***** x_bytes=' + str(x_bytes))
                 res = encryptor.encode(x_bytes)
+                ciphermode = res.cipher_mode
                 ciphertext_b64 = res.ciphertext_b64
                 tag_b64 = res.tag_b64
                 nonce_b64 = res.nonce_b64
@@ -190,6 +191,7 @@ class Hide:
                 if plaintext != x:
                     raise Exception('Decrypt Failed for x "' + str(x) + '", decypted "' + str(plaintext) + '"')
                 return {
+                    'ciphermode': ciphermode,
                     'ciphertext_b64': ciphertext_b64,
                     'tag_b64': tag_b64,
                     'nonce_b64': nonce_b64
@@ -260,7 +262,7 @@ if __name__ == '__main__':
         ('Name', False, False), ('Phone', True, False), ('Email', False, False), ('BankAcc', True, False)
     ]:
         res = Hide().hide_data(
-            records_json_str = json_str,
+            records_json     = json_str,
             hide_colname     = col_instruction[0],
             is_number_only   = col_instruction[1],
             case_sensitive   = col_instruction[2],
