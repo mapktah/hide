@@ -79,7 +79,7 @@ class Obfuscate:
         n_blocks = int( len(h) / desired_byte_length )
         # 8 bytes block length
         block_len = int( len(h) / n_blocks )
-        print('Number of blocks = ' + str(n_blocks) + ', block length = ' + str(block_len))
+        # print('Number of blocks = ' + str(n_blocks) + ', block length = ' + str(block_len))
 
         # First block
         bytes_xor = h[0:block_len]

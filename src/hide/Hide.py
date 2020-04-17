@@ -52,14 +52,15 @@ class Hide:
         df = pd.DataFrame(records_json)
         Log.debug(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Converted json str: ' + str(records_json)
+            + ': Converted json object (first 100 records): '
+            + str(records_json[0:min(100,len(records_json))])
             + ' to data frame: ' + str(df)
         )
 
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Start processing records, hide column "' + str(hide_colname)
-            + '"'
+            + '". Records first 100 rows' +  str(records_json[0:min(100,len(records_json))])
         )
 
         #
@@ -207,7 +208,7 @@ class Hide:
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
             + ': Successfully encrypted column "' + str(hide_colname)
-            + '"'
+            + '", for records (first 100 rows): ' + str(df.values[0:min(100,df.shape[0])])
         )
 
         # def obfuscate_cipher_to_lang(

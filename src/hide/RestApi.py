@@ -48,8 +48,7 @@ class HideApi:
             Log.info(
                 str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
                 + ': Received parameters: hide colname "' + str(hide_colname)
-                + '", nonce base64 "' + str(nonce_b64)
-                + '", records: ' + str(records_json)
+                + '", nonce base64 "' + str(nonce_b64) + '"'
             )
             return self.hide_data(
                 records_json     = records_json,
@@ -101,7 +100,6 @@ class HideApi:
         except Exception as ex:
             errmsg = str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno) \
                      + ' Exception occurred IP ' + str(flask.request.remote_addr) \
-                     + ', records ' + str(records_json) \
                      + ', exception ' + str(ex) + '.'
             Log.error(errmsg)
             if Log.DEBUG_PRINT_ALL_TO_SCREEN:
