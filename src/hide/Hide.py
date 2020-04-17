@@ -224,7 +224,7 @@ class Hide:
         )
 
         #
-        # Ecnryption
+        # Encryption
         #
         step += 1
         start_enc_time = Profiling.start()
@@ -277,7 +277,7 @@ class Hide:
                     'ciphermode': ciphermode,
                     'ciphertext_b64': ciphertext_b64,
                     'tag_b64': tag_b64,
-                    'nonce_b64': nonce_b64
+                    'iv_b64': nonce_b64
                 }
             except Exception as ex:
                 Log.error(
@@ -289,7 +289,8 @@ class Hide:
         df[colname_encrypt] = df[colname_clean].apply(encrypt, args=[encryptor])
         Log.important(
             str(self.__class__) + ' ' + str(getframeinfo(currentframe()).lineno)
-            + ': Took ' + str(Profiling.get_time_dif_secs(start=start_enc_time, stop=Profiling.stop(), decimals=2))
+            + ': Step ' + str(step) + ': ENCRYPTION Took '
+            + str(Profiling.get_time_dif_secs(start=start_enc_time, stop=Profiling.stop(), decimals=2))
             + ' secs. Successfully encrypted column "' + str(hide_colname)
             + '", for records (first 20 rows): ' + str(df.values[0:min(20,df.shape[0])])
         )
