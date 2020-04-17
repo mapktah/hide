@@ -146,9 +146,10 @@ cmdline_params = CmdLine.get_cmdline_params(
 print('Command line params: ' + str(cmdline_params))
 cwd = os.getcwd()
 
-if pv['debug'] in ['1','y','yes']:
-    Log.DEBUG_PRINT_ALL_TO_SCREEN = True
-    print('Logs will be directed to stdout')
+if 'debug' in pv.keys():
+    if pv['debug'] in ['1','y','yes']:
+        Log.DEBUG_PRINT_ALL_TO_SCREEN = True
+        print('Logs will be directed to stdout')
 else:
     print('Current working directory "' + str(cwd) + '"')
     cwd = re.sub(pattern='([/\\\\]hide[/\\\\]).*', repl='/hide/', string=cwd)
